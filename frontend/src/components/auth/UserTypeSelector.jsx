@@ -1,5 +1,5 @@
 import React from 'react';
-import './Auth.js';
+import './Auth.css';
 
 const UserTypeSelector = ({ userType, setUserType }) => {
   return (
@@ -22,6 +22,7 @@ const UserTypeSelector = ({ userType, setUserType }) => {
         </button>
       </div>
     </div>
+    
   );
 };
 

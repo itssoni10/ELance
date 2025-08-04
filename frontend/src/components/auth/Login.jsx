@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, Container, TextField, Typography, Divider, IconButton } from '@mui/material';
 import { Google, LinkedIn, Apple } from '@mui/icons-material';
 import UserTypeSelector from './UserTypeSelector';
+import Signup from "./Signup";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -90,7 +91,7 @@ const Login = () => {
       </Box>
       
       <Typography variant="body2" align="center" sx={{ mt: 3 }}>
-        Don't have an account? <Button variant="text" size="small">Sign Up</Button>
+        Don't have an account? <Button variant="text" size="small" href="/signup">Signup</Button>
       </Typography>
     </Container>
   );
