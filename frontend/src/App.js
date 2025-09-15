@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
@@ -25,18 +25,21 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <Navigation />
           <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
             <Routes>
+              {/* Step 1: Default route goes to Signup */}
+              <Route path="/" element={<Navigate to="/signup" replace />} />
+
               {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/home" element={<LandingPage />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/aboutus" element={<AboutUs />} />
               <Route path="/companyname" element={<CompanyLogos />} />
               <Route path="/jobseeker" element={<JobseekerLogin />} />
               <Route path="/landing" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+
+              {/* Step 3: LandingPage (after login success, redirect here) */}
+              <Route path="/home" element={<LandingPage />} />
 
               {/* Protected Routes */}
               <Route

@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import { Google, LinkedIn, Apple } from '@mui/icons-material';
 import { AuthContext } from '../../contexts/AuthContext';
-import { authService } from '../../services/AuthService';
 
 const Login = () => {
   const [email, setEmail] = useState('elancejobsportal@gmail.com');
@@ -29,16 +28,11 @@ const Login = () => {
 
     try {
       console.log('Attempting to login with:', email);
-      const data = await authService.login(email, password);
+
+      // ✅ Use AuthContext.login (it handles API + navigation)
+      await login(email, password);
+
       setMessage('✅ Login successful!');
-      
-      // Update auth context
-      login(data.user);
-      
-      // Small delay to show success message
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
     } catch (error) {
       console.error('Login error:', error);
       setMessage(error.message || 'Failed to login');
@@ -77,7 +71,7 @@ const Login = () => {
           zIndex: 0
         }}
       />
-      
+
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Card
           sx={{
@@ -113,6 +107,7 @@ const Login = () => {
             </Typography>
           </Box>
 
+          {/* Login Form */}
           <Box component="form" onSubmit={handleLoginSubmit}>
             <TextField
               fullWidth
@@ -122,27 +117,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              sx={{ 
-                mb: 3,
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  '& fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#42a5f5',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  '&.Mui-focused': {
-                    color: '#42a5f5',
-                  },
-                },
-              }}
+              sx={{ mb: 3 }}
             />
             <TextField
               fullWidth
@@ -152,27 +127,7 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              sx={{ 
-                mb: 3,
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  '& fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#42a5f5',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  '&.Mui-focused': {
-                    color: '#42a5f5',
-                  },
-                },
-              }}
+              sx={{ mb: 3 }}
             />
             <Button
               fullWidth
@@ -204,72 +159,17 @@ const Login = () => {
             </Alert>
           )}
 
-          <Divider sx={{ my: 3, borderColor: 'rgba(255, 255, 255, 0.2)' }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              OR
-            </Typography>
-          </Divider>
+          <Divider sx={{ my: 3 }} />
 
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 3 }}>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <Google />
-            </IconButton>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <LinkedIn />
-            </IconButton>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <Apple />
-            </IconButton>
+            <IconButton><Google /></IconButton>
+            <IconButton><LinkedIn /></IconButton>
+            <IconButton><Apple /></IconButton>
           </Box>
 
           <Typography variant="body2" align="center" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
             Don&apos;t have an account?{' '}
-            <Button 
-              variant="text" 
-              size="small" 
-              href="/signup"
-              sx={{ 
-                fontWeight: 600,
-                color: '#42a5f5',
-                textDecoration: 'underline',
-                '&:hover': {
-                  color: '#1976d2'
-                }
-              }}
-            >
+            <Button variant="text" size="small" href="/signup">
               Create Account
             </Button>
           </Typography>

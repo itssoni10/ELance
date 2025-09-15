@@ -9,15 +9,12 @@ import {
   IconButton,
   Alert,
   Card,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip
 } from '@mui/material';
 import { Google, LinkedIn, Apple, Person, Business } from '@mui/icons-material';
 import { AuthContext } from '../../contexts/AuthContext';
 import { authService } from '../../services/AuthService';
+import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -30,13 +27,13 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Validation
     if (!username || !email || !password || !confirmPassword) {
       setError('All fields are required');
       setLoading(false);
@@ -56,24 +53,11 @@ const Signup = () => {
     }
 
     try {
-      console.log('Attempting to sign up with:', { username, email, password, userType });
-      const data = await authService.signup({
-        username,
-        email,
-        password,
-        confirmPassword,
-        userType
-      });
-      
-      console.log('Signup response:', data);
+      // 🔹 adjusted to your requirement
+      await authService.signup({ name: username, email, password });
       setShowOTP(true);
     } catch (err) {
-      console.error('Signup error details:', {
-        error: err,
-        message: err.message,
-        stack: err.stack
-      });
-      
+      console.error('Signup error details:', err);
       if (!navigator.onLine) {
         setError('No internet connection. Please check your network.');
       } else if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
@@ -98,15 +82,17 @@ const Signup = () => {
     }
 
     try {
-      // Send OTP verification request through AuthService
-      const data = await authService.verifyOTP(email, otp);
-      
-      // Update auth context with user data
-      login(data.user);
-      
-      // Signup successful, redirect to appropriate page
-      alert('Signup successful! Welcome to ELance!');
-      window.location.href = '/dashboard';
+      // 🔹 adjusted verify call
+      await authService.verifyOTP(email, otp);
+
+      // 🔹 auto-login after OTP
+      await authService.login(email, password);
+
+      // Save user in context
+      login({ email });
+
+      alert('Signup successful! Please login to continue.');
+      navigate('/login');
     } catch (err) {
       setError(err.message || 'Invalid OTP. Please try again.');
       console.error('OTP verification error:', err);
@@ -120,8 +106,7 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // Send resend OTP request through AuthService
-      const data = await authService.resendOTP(email);
+      await authService.resendOTP(email);
       alert('New OTP sent to your email');
     } catch (err) {
       setError('Network error. Please try again.');
@@ -145,14 +130,10 @@ const Signup = () => {
         overflow: 'hidden'
       }}
     >
-      {/* Background Pattern */}
       <Box
         sx={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           background: `
             radial-gradient(circle at 20% 80%, rgba(66, 165, 245, 0.1) 0%, transparent 50%),
             radial-gradient(circle at 80% 20%, rgba(25, 118, 210, 0.1) 0%, transparent 50%),
@@ -161,7 +142,7 @@ const Signup = () => {
           zIndex: 0
         }}
       />
-      
+
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Card
           sx={{
@@ -174,12 +155,13 @@ const Signup = () => {
             color: 'white'
           }}
         >
+          {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography
               variant="h3"
               gutterBottom
-              sx={{ 
-                fontWeight: 700, 
+              sx={{
+                fontWeight: 700,
                 background: 'linear-gradient(45deg, #42a5f5 30%, #1976d2 90%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
@@ -197,7 +179,7 @@ const Signup = () => {
             </Typography>
           </Box>
 
-          {/* User Type Selector */}
+          {/* User Type */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 2 }}>
               I am a:
@@ -209,14 +191,13 @@ const Signup = () => {
                 clickable
                 onClick={() => setUserType('jobSeeker')}
                 sx={{
-                  background: userType === 'jobSeeker' 
-                    ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' 
-                    : 'rgba(255, 255, 255, 0.1)',
+                  background:
+                    userType === 'jobSeeker'
+                      ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)'
+                      : 'rgba(255, 255, 255, 0.1)',
                   color: 'white',
                   border: '2px solid rgba(255, 255, 255, 0.3)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(66, 165, 245, 0.2)'
-                  }
+                  '&:hover': { backgroundColor: 'rgba(66, 165, 245, 0.2)' }
                 }}
               />
               <Chip
@@ -225,330 +206,122 @@ const Signup = () => {
                 clickable
                 onClick={() => setUserType('employer')}
                 sx={{
-                  background: userType === 'employer' 
-                    ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' 
-                    : 'rgba(255, 255, 255, 0.1)',
+                  background:
+                    userType === 'employer'
+                      ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)'
+                      : 'rgba(255, 255, 255, 0.1)',
                   color: 'white',
                   border: '2px solid rgba(255, 255, 255, 0.3)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(66, 165, 245, 0.2)'
-                  }
+                  '&:hover': { backgroundColor: 'rgba(66, 165, 245, 0.2)' }
                 }}
               />
             </Box>
           </Box>
-          
+
           {!showOTP ? (
             <Box component="form" onSubmit={handleSignupSubmit}>
+              {/* Username */}
               <TextField
                 fullWidth
                 label="Username"
-                variant="outlined"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#42a5f5',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#42a5f5',
-                    },
-                  },
-                }}
+                sx={{ mb: 3 }}
               />
+              {/* Email */}
               <TextField
                 fullWidth
                 label="Email Address"
-                variant="outlined"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#42a5f5',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#42a5f5',
-                    },
-                  },
-                }}
+                sx={{ mb: 3 }}
               />
+              {/* Password */}
               <TextField
                 fullWidth
                 label="Password"
-                variant="outlined"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#42a5f5',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#42a5f5',
-                    },
-                  },
-                }}
+                sx={{ mb: 3 }}
               />
+              {/* Confirm Password */}
               <TextField
                 fullWidth
                 label="Confirm Password"
-                variant="outlined"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#42a5f5',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#42a5f5',
-                    },
-                  },
-                }}
+                sx={{ mb: 3 }}
               />
-              
+
               {error && (
                 <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                   {error}
                 </Alert>
               )}
-              
-              <Button
-                fullWidth
-                variant="contained"
-                type="submit"
-                disabled={loading}
-                size="large"
-                sx={{ 
-                  py: 2, 
-                  mb: 3,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
-                  }
-                }}
-              >
+
+              <Button fullWidth variant="contained" type="submit" disabled={loading} size="large">
                 {loading ? 'Sending OTP...' : '🚀 Send OTP & Create Account'}
               </Button>
             </Box>
           ) : (
             <Box component="form" onSubmit={handleOTPSubmit}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
-                  📧 Verification Code Sent
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  We've sent a 6-digit code to <strong>{email}</strong>
-                </Typography>
-              </Box>
-              
+              {/* OTP Input */}
               <TextField
                 fullWidth
                 label="Enter OTP"
-                variant="outlined"
                 value={otp}
                 onChange={(e) => {
                   setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
                   setError('');
                 }}
                 required
-                placeholder="000000"
-                inputProps={{ 
-                  maxLength: 6,
-                  style: { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }
-                }}
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#42a5f5',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#42a5f5',
-                    },
-                  },
-                }}
+                inputProps={{ maxLength: 6 }}
+                sx={{ mb: 3 }}
               />
-              
+
               {error && (
                 <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                   {error}
                 </Alert>
               )}
-              
-              <Button
-                fullWidth
-                variant="contained"
-                type="submit"
-                disabled={loading}
-                size="large"
-                sx={{ 
-                  py: 2, 
-                  mb: 2,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
-                  }
-                }}
-              >
+
+              <Button fullWidth variant="contained" type="submit" disabled={loading} size="large">
                 {loading ? 'Verifying...' : '✅ Verify & Complete Signup'}
               </Button>
-              
+
               <Button
                 fullWidth
                 variant="outlined"
                 onClick={handleResendOTP}
                 disabled={loading}
                 size="large"
-                sx={{ 
-                  py: 2, 
-                  mb: 3,
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  color: 'white',
-                  '&:hover': {
-                    borderColor: '#42a5f5',
-                    backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                  }
-                }}
+                sx={{ mt: 2 }}
               >
                 🔄 Resend OTP
               </Button>
             </Box>
           )}
 
-          <Divider sx={{ my: 3, borderColor: 'rgba(255, 255, 255, 0.2)' }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              OR
-            </Typography>
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2">OR</Typography>
           </Divider>
 
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 3 }}>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <Google />
-            </IconButton>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <LinkedIn />
-            </IconButton>
-            <IconButton 
-              sx={{ 
-                p: 2, 
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 3,
-                color: 'white',
-                '&:hover': {
-                  borderColor: '#42a5f5',
-                  backgroundColor: 'rgba(66, 165, 245, 0.1)'
-                }
-              }}
-            >
-              <Apple />
-            </IconButton>
+            <IconButton><Google /></IconButton>
+            <IconButton><LinkedIn /></IconButton>
+            <IconButton><Apple /></IconButton>
           </Box>
 
-          <Typography variant="body2" align="center" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          <Typography variant="body2" align="center">
             Already have an account?{' '}
-            <Button 
-              variant="text" 
-              size="small" 
-              href="/login"
-              sx={{ 
-                fontWeight: 600,
-                color: '#42a5f5',
-                textDecoration: 'underline',
-                '&:hover': {
-                  color: '#1976d2'
-                }
-              }}
-            >
+            <Button variant="text" size="small" href="/login">
               Login Here
             </Button>
           </Typography>
