@@ -125,11 +125,33 @@ const UserProfile = () => {
     const { name, value } = e.target;
     setNewEducation(prev => ({ ...prev, [name]: value }));
   };
-
+  React.useEffect(() => {
+    const savedProfile = localStorage.getItem("userProfile");
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+  }, []);
   const handleSave = () => {
-    setSaveStatus('success');
+     try {
+    // Save profile locally (you already update state as user types)
+    // Here we just confirm the save action
+    setSaveStatus("success");
+
+    // Optional: persist to localStorage or backend
+    localStorage.setItem("userProfile", JSON.stringify(profile));
+
+    // Exit editing mode
     setIsEditing(false);
+
+    // Auto-hide success message
     setTimeout(() => setSaveStatus(null), 3000);
+  } catch (error) {
+    setSaveStatus("error");
+    console.error("Failed to save profile:", error);
+  }
+    // setSaveStatus('success');
+    // setIsEditing(false);
+    // setTimeout(() => setSaveStatus(null), 3000);
   };
 
   const TabPanel = ({ children, value, index, ...other }) => (

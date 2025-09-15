@@ -21,20 +21,20 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
 } from '@mui/material';
 import {
   CloudUpload,
   Description,
-  CheckCircle,
-  Error,
   Person,
   Work,
   School,
   Star,
   Close,
-  Download,
+  CheckCircle,
 } from '@mui/icons-material';
 import { AuthContext } from '../contexts/AuthContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { authService } from '../services/AuthService';
 
 const ResumeForm = () => {
@@ -45,7 +45,22 @@ const ResumeForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // manual form state
+  const [manualForm, setManualForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    skills: '',
+    currentRole: '',
+    currentCompany: '',
+    education: '',
+    experience: ''
+  });
+
   const { user } = useContext(AuthContext);
+  const { profile, integrateResumeData, updateProfile } = useProfile();
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -101,6 +116,117 @@ const ResumeForm = () => {
     }
   };
 
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setManualForm({ ...manualForm, [name]: value });
+  };
+
+  const handleManualSubmit = () => {
+    const manualAnalysis = {
+      personalInfo: {
+        name: manualForm.name,
+        email: manualForm.email,
+        phone: manualForm.phone,
+        location: manualForm.location,
+      },
+      currentRole: manualForm.currentRole,
+      currentCompany: manualForm.currentCompany,
+      skills: manualForm.skills.split(',').map(s => s.trim()).filter(s => s.length > 0),
+      experience: [
+        { 
+          title: manualForm.experience, 
+          company: manualForm.currentCompany, 
+          duration: '', 
+          description: '' 
+        }
+      ].filter(exp => exp.title),
+      education: [
+        { 
+          degree: manualForm.education, 
+          institution: '', 
+          year: '',
+          field: manualForm.education
+        }
+      ].filter(edu => edu.degree)
+    };
+    
+    setAnalysis(manualAnalysis);
+    setShowAnalysis(true);
+  };
+
+  const handleGeminiAnalyze = async () => {
+    if (!file) {
+      setError('Please upload a resume first');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const apiKey = "YOUR_GEMINI_API_KEY"; // Replace with your real Gemini API key
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: "Extract structured resume details (personal info, skills, work experience, education) from this resume." }
+                ]
+              }
+            ]
+          }),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      const result = await response.json();
+      const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (aiText) {
+        setAnalysis(JSON.parse(aiText));
+        setShowAnalysis(true);
+      } else {
+        setError("Gemini API returned no analysis");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Gemini API analysis failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUpdateProfile = () => {
+    if (!analysis) return;
+
+    // Integrate the resume data into the profile
+    const updatedProfile = integrateResumeData(analysis);
+    
+    setSuccess('Profile updated successfully with resume data!');
+    setShowAnalysis(false);
+    setAnalysis(null);
+    
+    // Clear manual form
+    setManualForm({
+      name: '',
+      email: '',
+      phone: '',
+      location: '',
+      skills: '',
+      currentRole: '',
+      currentCompany: '',
+      education: '',
+      experience: ''
+    });
+
+    // Show success message for longer
+    setTimeout(() => setSuccess(''), 5000);
+  };
+
   const handleCloseAnalysis = () => {
     setShowAnalysis(false);
     setAnalysis(null);
@@ -138,9 +264,24 @@ const ResumeForm = () => {
           📄 Smart Resume Upload
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-          Upload your resume and let AI extract your skills, experience, and career insights
+          Upload your resume, fill manually, or let AI analyze it
         </Typography>
       </Box>
+
+      {/* Current Profile Status */}
+      {(profile.name || profile.skills.length > 0) && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 3 }}
+          icon={<CheckCircle />}
+        >
+          <Typography variant="body2">
+            <strong>Current Profile:</strong> {profile.name || 'Unnamed'} • 
+            {profile.skills.length} skills • {profile.education.length} education entries • 
+            {profile.workExperience?.length || 0} work experiences
+          </Typography>
+        </Alert>
+      )}
 
       <Grid container spacing={4}>
         {/* Upload Section */}
@@ -222,6 +363,16 @@ const ResumeForm = () => {
                 {uploading ? 'Processing...' : '🤖 Analyze Resume'}
               </Button>
 
+              <Button
+                variant="outlined"
+                fullWidth
+                sx={{ mt: 2 }}
+                onClick={handleGeminiAnalyze}
+                disabled={!file || uploading}
+              >
+                🔮 Analyze with Gemini AI
+              </Button>
+
               {error && (
                 <Alert severity="error" sx={{ mt: 2 }}>
                   {error}
@@ -237,64 +388,111 @@ const ResumeForm = () => {
           </Card>
         </Grid>
 
-        {/* Features Section */}
+        {/* Manual Form Section */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-                ✨ What We Extract
+                ✍️ Fill Resume Details Manually
               </Typography>
-              
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Person color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Personal Information"
-                    secondary="Name, contact details, location"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Work color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Work Experience"
-                    secondary="Job titles, companies, responsibilities"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <School color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Education"
-                    secondary="Degrees, institutions, graduation years"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Star color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Skills & Technologies"
-                    secondary="Technical skills, programming languages"
-                  />
-                </ListItem>
-              </List>
 
-              <Divider sx={{ my: 2 }} />
+              <TextField 
+                fullWidth 
+                label="Full Name" 
+                name="name" 
+                value={manualForm.name} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }} 
+                placeholder={profile.name || "Enter your full name"}
+              />
+              <TextField 
+                fullWidth 
+                label="Email" 
+                name="email" 
+                value={manualForm.email} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.email || "Enter your email"}
+              />
+              <TextField 
+                fullWidth 
+                label="Phone" 
+                name="phone" 
+                value={manualForm.phone} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.phone || "Enter your phone number"}
+              />
+              <TextField 
+                fullWidth 
+                label="Location" 
+                name="location" 
+                value={manualForm.location} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.location || "Enter your location"}
+              />
+              <TextField 
+                fullWidth 
+                label="Current Role" 
+                name="currentRole" 
+                value={manualForm.currentRole} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.currentRole || "Enter your current role"}
+              />
+              <TextField 
+                fullWidth 
+                label="Current Company" 
+                name="currentCompany" 
+                value={manualForm.currentCompany} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.currentCompany || "Enter your current company"}
+              />
+              <TextField 
+                fullWidth 
+                label="Skills (comma separated)" 
+                name="skills" 
+                value={manualForm.skills} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder={profile.skills.length > 0 ? profile.skills.join(', ') : "React, Node.js, Python"}
+                helperText="Separate multiple skills with commas"
+              />
+              <TextField 
+                fullWidth 
+                label="Education" 
+                name="education" 
+                value={manualForm.education} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder="Bachelor of Technology in Computer Science"
+              />
+              <TextField 
+                fullWidth 
+                label="Experience" 
+                name="experience" 
+                value={manualForm.experience} 
+                onChange={handleFormChange} 
+                sx={{ mb: 2 }}
+                placeholder="Software Developer, Frontend Engineer, etc."
+              />
 
-              <Typography variant="h6" gutterBottom>
-                🎯 Benefits
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Chip label="Auto-populate Profile" color="primary" size="small" />
-                <Chip label="Skill Matching" color="secondary" size="small" />
-                <Chip label="Career Insights" color="success" size="small" />
-                <Chip label="AI Analysis" color="info" size="small" />
-              </Box>
+              <Button 
+                variant="contained" 
+                fullWidth 
+                onClick={handleManualSubmit}
+                disabled={!manualForm.name && !manualForm.email && !manualForm.skills}
+                sx={{
+                  background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)',
+                  }
+                }}
+              >
+                Save Manual Details
+              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -324,85 +522,95 @@ const ResumeForm = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Name</Typography>
-                      <Typography variant="body1">{analysis.personalInfo?.name}</Typography>
+                      <Typography variant="body1">{analysis.personalInfo?.name || 'Not provided'}</Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Email</Typography>
-                      <Typography variant="body1">{analysis.personalInfo?.email}</Typography>
+                      <Typography variant="body1">{analysis.personalInfo?.email || 'Not provided'}</Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Phone</Typography>
-                      <Typography variant="body1">{analysis.personalInfo?.phone}</Typography>
+                      <Typography variant="body1">{analysis.personalInfo?.phone || 'Not provided'}</Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Location</Typography>
-                      <Typography variant="body1">{analysis.personalInfo?.location}</Typography>
+                      <Typography variant="body1">{analysis.personalInfo?.location || 'Not provided'}</Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
               </Card>
 
               {/* Current Role */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    💼 Current Position
-                  </Typography>
-                  <Typography variant="h5" color="primary">
-                    {analysis.currentRole}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    at {analysis.currentCompany}
-                  </Typography>
-                </CardContent>
-              </Card>
+              {(analysis.currentRole || analysis.currentCompany) && (
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      💼 Current Position
+                    </Typography>
+                    <Typography variant="h5" color="primary">
+                      {analysis.currentRole || 'Role not specified'}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      {analysis.currentCompany ? `at ${analysis.currentCompany}` : 'Company not specified'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Skills */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    🛠️ Skills & Technologies
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {analysis.skills?.map((skill, index) => (
-                      <Chip key={index} label={skill} color="primary" variant="outlined" />
-                    ))}
-                  </Box>
-                </CardContent>
-              </Card>
+              {analysis.skills && analysis.skills.length > 0 && (
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      🛠️ Skills & Technologies
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {analysis.skills.map((skill, index) => (
+                        <Chip key={index} label={skill} color="primary" variant="outlined" />
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Experience */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    📈 Work Experience
-                  </Typography>
-                  {analysis.experience?.map((exp, index) => (
-                    <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
-                      <Typography variant="h6">{exp.title}</Typography>
-                      <Typography variant="body1" color="primary">{exp.company}</Typography>
-                      <Typography variant="body2" color="text.secondary">{exp.duration}</Typography>
-                      <Typography variant="body2">{exp.description}</Typography>
-                    </Box>
-                  ))}
-                </CardContent>
-              </Card>
+              {analysis.experience && analysis.experience.length > 0 && (
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      📈 Work Experience
+                    </Typography>
+                    {analysis.experience.map((exp, index) => (
+                      <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
+                        <Typography variant="h6">{exp.title || 'Position not specified'}</Typography>
+                        <Typography variant="body1" color="primary">{exp.company || 'Company not specified'}</Typography>
+                        <Typography variant="body2" color="text.secondary">{exp.duration || 'Duration not specified'}</Typography>
+                        {exp.description && (
+                          <Typography variant="body2" sx={{ mt: 1 }}>{exp.description}</Typography>
+                        )}
+                      </Box>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Education */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    🎓 Education
-                  </Typography>
-                  {analysis.education?.map((edu, index) => (
-                    <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
-                      <Typography variant="h6">{edu.degree}</Typography>
-                      <Typography variant="body1" color="primary">{edu.institution}</Typography>
-                      <Typography variant="body2" color="text.secondary">{edu.year}</Typography>
-                    </Box>
-                  ))}
-                </CardContent>
-              </Card>
+              {analysis.education && analysis.education.length > 0 && (
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      🎓 Education
+                    </Typography>
+                    {analysis.education.map((edu, index) => (
+                      <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
+                        <Typography variant="h6">{edu.degree || 'Degree not specified'}</Typography>
+                        <Typography variant="body1" color="primary">{edu.institution || 'Institution not specified'}</Typography>
+                        <Typography variant="body2" color="text.secondary">{edu.year || 'Year not specified'}</Typography>
+                      </Box>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </Box>
           )}
         </DialogContent>
@@ -411,7 +619,7 @@ const ResumeForm = () => {
             Close
           </Button>
           <Button 
-            onClick={handleCloseAnalysis} 
+            onClick={handleUpdateProfile} 
             variant="contained"
             sx={{
               background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
