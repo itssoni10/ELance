@@ -83,5 +83,23 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('MongoDB URI:', process.env.MONGODB_URI);
-  console.log('Email configuration loaded:', !!process.env.EMAIL_USER);
+  // console.log('Email configuration loaded:', !!process.env.EMAIL_USER)
+});
+
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Error:", error);
+  } else {
+    console.log("✅ SMTP Server is ready:", success);
+  }
 });
