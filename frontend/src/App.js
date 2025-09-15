@@ -11,12 +11,13 @@ import ResumeForm from './pages/ResumeForm';
 import Dashboard from './pages/Dashboard';
 import Landing from './components/auth/Landing';
 import LandingPage from './pages/LandingPage';
-import AboutUs from './pages/AboutUs';
+import AboutUs from './components/AboutUs';
 import CompanyLogos from './components/CompanyLogos';
 import JobseekerLogin from './components/JobseekerLogin';
 import UserProfile from './components/UserProfile';
 import SkillDemandRadar from './components/SkillDemandRadar';
 import CareerPlanner from './components/CareerPlanner';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -27,19 +28,57 @@ function App() {
           <Navigation />
           <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/home" element={<LandingPage />} />
-              <Route path="/aboutus" element={<AboutUs/>} />
-              <Route path="companyname" element={<CompanyLogos/>} />
-              <Route path="/jobseeker" element={<JobseekerLogin/>} />
-              <Route path="/userprofile" element={<UserProfile/>} />
+              <Route path="/aboutus" element={<AboutUs />} />
+              <Route path="/companyname" element={<CompanyLogos />} />
+              <Route path="/jobseeker" element={<JobseekerLogin />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/resume" element={<ResumeForm />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/skill-radar" element={<SkillDemandRadar />} />
-              <Route path="/career-planner" element={<CareerPlanner />} />
+
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/resume"
+                element={
+                  <ProtectedRoute>
+                    <ResumeForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/userprofile"
+                element={
+                  <ProtectedRoute>
+                    <UserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/skill-radar"
+                element={
+                  <ProtectedRoute>
+                    <SkillDemandRadar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/career-planner"
+                element={
+                  <ProtectedRoute>
+                    <CareerPlanner />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </Box>
         </Box>
@@ -49,4 +88,3 @@ function App() {
 }
 
 export default App;
-

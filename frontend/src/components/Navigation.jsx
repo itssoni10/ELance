@@ -1,18 +1,33 @@
-import React, { useState } from "react";
-import { Drawer, Box, Divider, Typography } from "@mui/material";
+import React, { useState, useContext } from "react";
+import { Drawer, Box, Divider, Typography, Button } from "@mui/material";
+import { useNavigate, useLocation } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 const Navigation = () => {
-  const [activeItem, setActiveItem] = useState(null);
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   const menuItems = [
-    { id: "home", label: "Home" },
-    { id: "dashboard", label: "Dashboard" },
-    { id: "skill-radar", label: "Skill Radar" },
-    { id: "career-planner", label: "Career Planner" },
-    { id: "resume", label: "Resume" },
-    { id: "aboutus", label: "About Us" },
-    { id: "login", label: "Login" },
+    { id: "home", label: "Home", path: "/" },
+    { id: "dashboard", label: "Dashboard", path: "/dashboard", auth: true },
+    { id: "skill-radar", label: "Skill Radar", path: "/skill-radar", auth: true },
+    { id: "career-planner", label: "Career Planner", path: "/career-planner", auth: true },
+    { id: "resume", label: "Resume", path: "/resume", auth: true },
+    { id: "aboutus", label: "About Us", path: "/aboutus" },
+    { id: "login", label: "Login", path: "/login", guest: true },
   ];
+
+  const activeItem = menuItems.find(
+    (item) => item.path === location.pathname
+  )?.id;
+
+  const handleClick = (item) => {
+    if (item.id === "login" && user) return;
+    navigate(item.path);
+  };
 
   return (
     <Drawer
@@ -33,44 +48,96 @@ const Navigation = () => {
         },
       }}
     >
-      {menuItems.map((item) => (
+      {menuItems.map((item) => {
+        if (item.auth && !user) return null;
+        if (item.guest && user) return null;
+
+        const isActive = activeItem === item.id;
+        const isHovered = hoveredItem === item.id;
+
+        return (
+          <Box
+            key={item.id}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              cursor: "pointer",
+              width: "100%",
+              mb: 2,
+            }}
+            onClick={() => handleClick(item)}
+            onMouseEnter={() => setHoveredItem(item.id)}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            {/* The single line */}
+            <Divider
+              sx={{
+                width: "60%",
+                borderBottomWidth: 3,
+                borderColor: isActive ? "#1976d2" : "#bbb",
+                mb: 1,
+              }}
+            />
+
+            {/* Show label only on hover */}
+            {isHovered && (
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 0.5,
+                  fontWeight: "bold",
+                  color: "#1976d2",
+                  fontSize: "0.8rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {item.label}
+              </Typography>
+            )}
+          </Box>
+        );
+      })}
+
+      {/* Logout button as a line item */}
+      {user && (
         <Box
-          key={item.id}
           sx={{
+            mt: "auto",
+            mb: 2,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             cursor: "pointer",
             width: "100%",
           }}
-          onClick={() => setActiveItem(item.id)}
+          onClick={logout}
+          onMouseEnter={() => setHoveredItem("logout")}
+          onMouseLeave={() => setHoveredItem(null)}
         >
-          {/* Show label only if this line is active */}
-          {activeItem === item.id && (
-            <Typography
-              variant="caption"
-              sx={{
-                mb: 0.5,
-                fontWeight: "bold",
-                color: "#1976d2",
-                fontSize: "0.8rem",
-              }}
-            >
-              {item.label}
-            </Typography>
-          )}
-
-          {/* Horizontal line */}
           <Divider
             sx={{
               width: "60%",
               borderBottomWidth: 3,
-              borderColor: activeItem === item.id ? "#1976d2" : "#bbb",
-              mb: 2,
+              borderColor: "#f44336",
+              mb: 1,
             }}
           />
+          {hoveredItem === "logout" && (
+            <Typography
+              variant="caption"
+              sx={{
+                mt: 0.5,
+                fontWeight: "bold",
+                color: "#f44336",
+                fontSize: "0.8rem",
+              }}
+            >
+              Logout
+            </Typography>
+          )}
         </Box>
-      ))}
+      )}
     </Drawer>
   );
 };
